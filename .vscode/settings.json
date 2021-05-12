@@ -1,3 +1,4 @@
 {
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "python.pythonPath": "C:\\Users\\syunn\\AppData\\Local\\Microsoft\\WindowsApps\\python3.8.exe"
 }
