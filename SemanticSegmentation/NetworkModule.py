@@ -141,3 +141,4 @@ class conv2DBatchNorm(nn.Module):
         outputs = self.batchnorm(x)
 
         return outputs
+
