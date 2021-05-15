@@ -7,7 +7,7 @@ import torch.utils.data as data
 def make_datapath_list(rootpath):
 
     imgepath_template = osp.join(rootpath, 'JPEPGImages', '%s.jpg')
-    annopath_template = osp.join(rootpath, 'SegmentionClass', '%s.png')
+    annopath_template = osp.join(rootpath, 'SegmentationClass', '%s.png')
 
     train_id_names = osp.join(rootpath + 'ImageSets/Segmentation/train.txt')
     val_id_names = osp.join(rootpath + 'ImageSets/Segmentation/val.txt')
@@ -17,7 +17,7 @@ def make_datapath_list(rootpath):
 
     for line in open(train_id_names):
         file_id = line.strip()
-        img_path = (imgpath_tmeplate % file_id)
+        img_path = (imgpath_template % file_id)
         anno_path = (annopath_template % file_id)
         train_img_list.append(img_path)
         train_anno_list.append(anno_path)
@@ -27,7 +27,7 @@ def make_datapath_list(rootpath):
 
     for line in open(val_id_names):
         file_id = line.strip()
-        img_path = (imgpath_tmeplate % file_id)
+        img_path = (imgpath_template % file_id)
         anno_path = (annopath_template % file_id)
         val_img_list.append(img_path)
         val_anno_list.append(anno_path)
@@ -47,7 +47,7 @@ class DataTransform():
                 Normalize_Tensor(color_mean, color_std)
             ]),
             'val': Compose([
-                Resize(input),
+                Resize(input_size),
                 Normalize_Tensor(color_mean, color_std)
             ])
         }
