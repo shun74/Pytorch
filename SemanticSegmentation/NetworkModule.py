@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# PSPNetwork Module
 class PSPNet(nn.Module):
     def __init__(self, n_classes):
         super().__init__()
@@ -78,6 +79,7 @@ class PSPNet(nn.Module):
 
         return (output, output_aux)
 
+# Feature Module
 class conv2DBatchNormRelu(nn.Module):
     def __init__(self, in_channels, out_channels, stride, kernel_size, padding, dilation, bias):
         super().__init__()
@@ -126,7 +128,7 @@ class ResidualBlockPSP(nn.Sequential):
         for i in range(2, n_blocks + 1):
             self.add_module(
                 "block" + str(i),
-                bottleNeckPSP(
+                bottleNeckIdentifyPSP(
                     out_channels, mid_channels, stride, dilation)
             )
 
@@ -141,3 +143,4 @@ class conv2DBatchNorm(nn.Module):
         outputs = self.batchnorm(x)
 
         return outputs
+
