@@ -14,32 +14,32 @@ class PSPNet(nn.Module):
         self.feature_res_1 = ResidualBlockPSP(
             n_blocks=block_config[0],
             in_channels=128,
-            mid_channel=64,
-            out_channel=256,
+            mid_channels=64,
+            out_channels=256,
             stride=1,
             dilation=1
         )
         self.feature_res_2 = ResidualBlockPSP(
             n_blocks=block_config[1],
             in_channels=256,
-            mid_channel=128,
-            out_channel=512,
+            mid_channels=128,
+            out_channels=512,
             stride=2,
             dilation=1
         )
         self.feature_dilated_res_1 = ResidualBlockPSP(
             n_blocks=block_config[2],
             in_channels=512,
-            mid_channel=256,
-            out_channel=1024,
+            mid_channels=256,
+            out_channels=1024,
             stride=1,
             dilation=2
         )
         self.feature_dilated_res_2 = ResidualBlockPSP(
             n_blocks=block_config[3],
             in_channels=1024,
-            mid_channel=512,
-            out_channel=2048,
+            mid_channels=512,
+            out_channels=2048,
             stride=1,
             dilation=4
         )
@@ -47,8 +47,8 @@ class PSPNet(nn.Module):
         self.pyramid_pooling = PyramidPooling(
             in_channels=2048,
             pool_sizes=[6, 3, 2, 1],
-            height=img_size,
-            width=img_size,
+            height=img_size_8,
+            width=img_size_8,
         )
 
         self.decode_feature = DecodePSPFeature(
@@ -60,7 +60,8 @@ class PSPNet(nn.Module):
         self.aux = AuxiliaryPSPlayers(
             in_channels=1024,
             height=img_size,
-            width=img_size
+            width=img_size,
+            n_classes=n_classes
         )
 
     def forward(self, x):
@@ -79,7 +80,7 @@ class PSPNet(nn.Module):
         return (output, output_aux)
 
 class conv2DBatchNormRelu(nn.Module):
-    def __init__(self, in_channels, out_channels, stride, kernel_size, padding, dilation, bias):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, dilation, bias):
         super().__init__()
         self.conv = nn.Conv2d(in_channels, out_channels,kernel_size,stride,padding, dilation, bias=bias)
         self.batchnorm = nn.BatchNorm2d(out_channels)
@@ -126,7 +127,7 @@ class ResidualBlockPSP(nn.Sequential):
         for i in range(2, n_blocks + 1):
             self.add_module(
                 "block" + str(i),
-                bottleNeckPSP(
+                bottleNeckIdentifyPSP(
                     out_channels, mid_channels, stride, dilation)
             )
 
@@ -184,7 +185,7 @@ class bottleNeckIdentifyPSP(nn.Module):
         )
 
         self.cb_residual = conv2DBatchNorm(
-            in_channels, out_channels, kernel_size=1, stride=1, padding=0, dilation=1, bias=False
+            in_channels, in_channels, kernel_size=1, stride=1, padding=0, dilation=1, bias=False
             )
 
         self.relu = nn.ReLU(inplace=True)
@@ -205,20 +206,20 @@ class PyramidPooling(nn.Module):
 
         out_channels = int(in_channels / len(pool_sizes))
 
-        self.avpool_1 = nn.AdaptiveAvgPool2d(out_size=pool_sizes[0])
+        self.avpool_1 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[0])
         self.cbr_1 = conv2DBatchNormRelu(
             in_channels, out_channels, kernel_size=1, stride=1, padding=0,dilation=1, bias=False)
         
-        self.avpool_2 = nn.AdaptiveAvgPool2d(out_size=pool_sizes[1])
-        self.cbr_1 = conv2DBatchNormRelu(
+        self.avpool_2 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[1])
+        self.cbr_2 = conv2DBatchNormRelu(
             in_channels, out_channels, kernel_size=1, stride=1, padding=0,dilation=1, bias=False)
         
-        self.avpool_3 = nn.AdaptiveAvgPool2d(out_size=pool_sizes[2])
-        self.cbr_1 = conv2DBatchNormRelu(
+        self.avpool_3 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[2])
+        self.cbr_3 = conv2DBatchNormRelu(
             in_channels, out_channels, kernel_size=1, stride=1, padding=0,dilation=1, bias=False)
         
-        self.avpool_4 = nn.AdaptiveAvgPool2d(out_size=pool_sizes[3])
-        self.cbr_1 = conv2DBatchNormRelu(
+        self.avpool_4 = nn.AdaptiveAvgPool2d(output_size=pool_sizes[3])
+        self.cbr_4 = conv2DBatchNormRelu(
             in_channels, out_channels, kernel_size=1, stride=1, padding=0,dilation=1, bias=False)
 
     def forward(self, x):
@@ -239,4 +240,48 @@ class PyramidPooling(nn.Module):
 
         return output
 
-    
+
+class DecodePSPFeature(nn.Module):
+    def __init__(self, height, width, n_classes):
+        super().__init__()
+
+        self.height = height
+        self.width = width
+
+        self.cbr = conv2DBatchNormRelu(
+            in_channels=4096, out_channels=512, kernel_size=3, stride=1, padding=1, dilation=1, bias=False)
+        self.dropout = nn.Dropout(p=0.1)
+        self.classification = nn.Conv2d(in_channels=512, out_channels=n_classes, kernel_size=1, stride=1, padding=0)
+
+    def forward(self, x):
+        x = self.cbr(x)
+        x = self.dropout(x)
+        x = self.classification(x)
+        output = F.interpolate(
+            x, size=(self.height, self. width), mode="bilinear", align_corners=True
+        )
+
+        return output
+
+
+class AuxiliaryPSPlayers(nn.Module):
+    def __init__(self, in_channels, height, width, n_classes):
+        super().__init__()
+
+        self.height = height
+        self.width = width
+
+        self.cbr = conv2DBatchNormRelu(
+            in_channels=in_channels, out_channels=256, kernel_size=3, stride=1, padding=1, dilation=1, bias=False)
+        self.dropout = nn.Dropout(p=0.1)
+        self.classification = nn.Conv2d(
+            in_channels=256, out_channels=n_classes, kernel_size=1, stride=1, padding=0)
+
+    def forward(self, x):
+        x = self.cbr(x)
+        x = self.dropout(x)
+        x = self.classification(x)
+        output = F.interpolate(
+            x, size=(self.height, self. width), mode="bilinear", align_corners=True)
+
+        return output
