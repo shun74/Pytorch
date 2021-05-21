@@ -1,12 +1,13 @@
 # パッケージのimport
 import os.path as osp
 from PIL import Image
-
 import torch.utils.data as data
+
+from utils.data_augumentation import Compose, Scale, RandomRotation, RandomMirror, Resize, Normalize_Tensor
 
 def make_datapath_list(rootpath):
 
-    imgepath_template = osp.join(rootpath, 'JPEPGImages', '%s.jpg')
+    imgpath_template = osp.join(rootpath, 'JPEGImages', '%s.jpg')
     annopath_template = osp.join(rootpath, 'SegmentationClass', '%s.png')
 
     train_id_names = osp.join(rootpath + 'ImageSets/Segmentation/train.txt')
@@ -34,7 +35,6 @@ def make_datapath_list(rootpath):
 
     return train_img_list, train_anno_list, val_img_list, val_anno_list
 
-from utils.data_augumentation import Compose, Scale, RandomRotation, RandomMirror, Resize, Normalize_Tensor
 
 class DataTransform():
     def __init__(self, input_size, color_mean, color_std):
