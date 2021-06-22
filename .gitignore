@@ -2,4 +2,8 @@
 /SemanticSegmentation/utils
 /SemanticSegmentation/weights
 /SemanticSegmentation/dataloader.ipynb
+/AnomalyDetection/data
+/AnomalyDetection/make_folders_and_data_downloads.ipynb
+/ConvolutionalAutoEncorder/data
+/ConvolutionalAutoEncorder/model
 /.vscode
