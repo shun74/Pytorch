@@ -6,4 +6,5 @@
 /AnomalyDetection/make_folders_and_data_downloads.ipynb
 /ConvolutionalAutoEncorder/data
 /ConvolutionalAutoEncorder/model
+/Albumentations/data
 /.vscode
